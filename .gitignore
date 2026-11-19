@@ -1,0 +1,37 @@
+# Secrets
+.env
+*.env
+
+# Database (tracked via GitHub Actions cache, not git)
+data/seen_jobs.db
+data/apply_agent.db
+
+# Email preview
+data/email_preview.html
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+dist/
+build/
+*.egg-info/
+.venv/
+venv/
+env/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Next.js
+frontend/.next/
+frontend/node_modules/
+frontend/.env.local

@@ -1,0 +1,49 @@
+DIVYANAND M
++91 9150050261 | divyanand.aitech@gmail.com | linkedin.com/in/divyanandm | github.com/Divyanand05
+
+PROFESSIONAL EXPERIENCE
+
+Software Engineering Intern | CloudCouch Tech Private Limited  (Oct 2025 – Apr 2026)
+- Developed and tested RESTful APIs supporting customer and employee workflows; contributed to backend service architecture.
+- Designed PostgreSQL database schemas to support application workflows and data integrity.
+- Worked on Razorpay payment gateway integration and Maps APIs for location-based functionality.
+
+PROJECTS
+
+AuraVision Guard — Fog & Low-Light Road Safety
+  Python, OpenCV, YOLOv8n, image enhancement
+  - Developed a road-scene pipeline combining fog and low-light enhancement with object detection.
+  - Separated inference from frame rendering and applied detection filtering for road-safety visualization.
+  - github.com/Divyanand05/realtime_objectdetection_fog
+
+Smart Campus AI Assistant
+  Python, Flask, TF-IDF, multi-agent systems, MCP
+  - Designed specialized agents and request routing for campus information and scheduling workflows.
+  - Implemented TF-IDF retrieval, input validation, and structured request traces.
+  - github.com/Divyanand05/smartcampusassistant
+
+Docvault — Document Intelligence
+  Python, AWS Lambda, DynamoDB, FAISS, TF-IDF, Groq API
+  - Contributed to a serverless document assistant supporting document-grounded question answering.
+  - Worked with retrieval and LLM response components for contextual document queries.
+  - github.com/Divyanand05/Docvault
+
+SKILLS
+Programming & ML: Python, machine learning, computer vision, OpenCV, YOLOv8, MiDaS
+Generative AI & Retrieval: TF-IDF, FAISS, RAG, MCP, LLM APIs, multi-agent systems
+Development & Tools: Flask, FastAPI, PostgreSQL, AWS Lambda, Git, GitHub
+
+EDUCATION
+B.Tech — AI & Data Science | Sri Manakula Vinayagar Engineering College | 2023–2027 | 7.95 CGPA
+Higher Secondary — Petit Seminaire Higher Secondary School | 2022–2023 | 70.1%
+
+PUBLICATION & ACHIEVEMENTS
+Docvault — RAG-Powered Cross-Document Synthesis, IMJRSET (Mar 2026).
+Special Mention — CloudCouch Hackathon | Top 10 — Tech-a-thon Hackathon
+
+CERTIFICATIONS
+AWS Cloud Foundations | AWS Machine Learning Foundations | AWS Generative AI Foundations
+IBM Introduction to Computer Vision | NPTEL Python for Data Science
+
+TARGET ROLES: AI Engineer, ML Engineer, Machine Learning Engineer, Computer Vision Engineer, AI/ML Intern
+LOCATION: Pondicherry, India | Open to Remote | 2027 Graduate | Immediate availability

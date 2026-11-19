@@ -1,0 +1,30 @@
+Divya Krishnan
+Chennai, India | divya@example.com | github.com/divyak
+
+EDUCATION
+B.Tech Computer Science, Graduating 2027 — SRM Institute of Science and Technology, Chennai
+GPA: 8.6/10
+
+SKILLS
+Languages: Python, SQL, JavaScript
+Libraries: Pandas, NumPy, Scikit-learn, Matplotlib, FastAPI
+Tools: Git, GitHub, VS Code, Jupyter Notebook, MySQL, PostgreSQL
+Cloud: AWS S3 (basic), Google Colab
+
+PROJECTS
+1. Customer Churn Prediction — Logistic Regression + Random Forest; 87% accuracy
+2. Sales Dashboard — Python + Streamlit + PostgreSQL; automated weekly reports
+3. URL Shortener API — FastAPI + SQLite; deployed on Render (free tier)
+
+INTERNSHIP
+Data Analyst Intern — DataVerse Analytics, Remote (Jun–Aug 2026)
+  - Cleaned and processed 50k-row datasets using Pandas
+  - Built 3 executive dashboards in Tableau and Streamlit
+  - Wrote SQL queries for weekly KPI reports
+
+CERTIFICATIONS
+  Google Data Analytics Professional Certificate (Coursera, 2026)
+  Python for Data Science — IBM (Coursera, 2025)
+
+LANGUAGES: English (fluent), Tamil (native)
+AVAILABILITY: Immediate | Open to remote or Chennai/Bengaluru/Hyderabad

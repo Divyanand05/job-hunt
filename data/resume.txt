@@ -1,0 +1,9 @@
+This file is a fallback. The system now uses role-specific resumes:
+
+  resume_data.txt    — Data Analyst / Data Engineer / Analytics
+  resume_backend.txt — Backend Developer / Python Developer
+  resume_aiml.txt    — AI Engineer / ML Engineer / Computer Vision
+  resume_main.txt    — General / fallback for any other role
+
+The ranker picks the best-matching resume automatically for each job.
+If no specific resume matches, resume_main.txt is used.

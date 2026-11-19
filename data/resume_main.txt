@@ -1,0 +1,50 @@
+DIVYANAND M
++91 9150050261 | divyanand.aitech@gmail.com | linkedin.com/in/divyanandm | github.com/Divyanand05
+
+PROFESSIONAL EXPERIENCE
+
+Software Engineering Intern — CloudCouch Tech Pvt. Ltd.  (Oct 2025 – Apr 2026)
+Backend development, PostgreSQL, REST APIs
+- Developed and tested RESTful APIs supporting user and employee workflows.
+- Designed PostgreSQL schemas and contributed to backend architecture and data integrity.
+- Worked on Razorpay payment integration and Maps APIs for location-based functionality.
+
+SELECTED PROJECTS
+
+AI CRM System for Business  (Mar 2026 – Jul 2026)
+  React.js, Node.js, Express.js, PostgreSQL / MongoDB, OpenAI API
+  - Built a CRM application for lead, customer, meeting, and support-ticket management.
+  - Implemented AI-assisted lead scoring, email automation, customer insights, and a sales dashboard.
+
+Real-Time Object Detection in Fog and Low Light  (Feb 2025 – Jul 2025)
+  Python, OpenCV, YOLOv8, MiDaS
+  - Developed a vision pipeline combining fog/low-light enhancement with road-object detection.
+  - Applied image enhancement to support detection in challenging driving conditions.
+
+Docvault — AI Document Assistant  (Dec 2025 – Mar 2026)
+  Python, AWS Lambda, S3, DynamoDB, FAISS, TF-IDF, Groq API
+  - Contributed to a serverless RAG document assistant for contextual Q&A and study-material generation.
+  - Worked with document retrieval and LLM-based answers using FAISS and TF-IDF.
+
+TECHNICAL SKILLS
+Programming: Python, JavaScript
+Web: React.js, Node.js, Express.js
+Databases: PostgreSQL, MongoDB, MySQL
+AI & Data: Machine Learning, Computer Vision, OpenCV, YOLOv8, FAISS, Power BI, Excel, ETL
+Cloud & Tools: AWS Lambda, S3, DynamoDB, Git, GitHub
+App: Flutter
+
+EDUCATION
+B.Tech AI & Data Science — Sri Manakula Vinayagar Engineering College | 2023–2027 | CGPA 7.95
+Higher Secondary — Petit Seminaire Higher Secondary School | 2022–2023 | 70.1%
+
+PUBLICATION & ACHIEVEMENTS
+Docvault: A Cloud-Native Semantic Document Intelligence Platform with RAG-Powered Cross-Document Synthesis — IMJRSET (Mar 2026).
+Special Mention — CloudCouch Hackathon | Top 10 — Tech-a-thon Hackathon
+
+CERTIFICATIONS
+AWS Cloud Foundations | AWS Machine Learning Foundations | AWS Generative AI Foundations
+IBM Introduction to Computer Vision | NPTEL Python for Data Science
+
+TARGET ROLES: Software Engineer, Full Stack Developer, AI Engineer, Backend Developer, Data Analyst
+LOCATION: Pondicherry, India | Open to Remote | 2027 Graduate | Immediate availability

@@ -1,0 +1,27 @@
+# Core HTTP and feed parsing
+httpx>=0.27.0
+feedparser>=6.0.11
+
+# Google Gemini (new SDK)
+google-genai>=1.0.0
+
+# Configuration
+python-dotenv>=1.0.0
+
+# Retry logic
+tenacity>=8.3.0
+
+# HTML parsing (email and job descriptions)
+beautifulsoup4>=4.12.3
+lxml>=5.2.0
+
+# Email templates
+jinja2>=3.1.4
+
+# API backend
+fastapi>=0.111.0
+uvicorn[standard]>=0.29.0
+
+# Testing
+pytest>=8.2.0
+pytest-asyncio>=0.23.0

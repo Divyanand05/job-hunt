@@ -1,0 +1,46 @@
+DIVYANAND M
++91 9150050261 | divyanand.aitech@gmail.com | linkedin.com/in/divyanandm | github.com/Divyanand05
+
+PROFESSIONAL EXPERIENCE
+
+Software Engineering Intern | CloudCouch Tech Private Limited  (Oct 2025 – Apr 2026)
+- Developed and tested RESTful APIs supporting customer and employee workflows; contributed to backend service architecture.
+- Designed PostgreSQL database schemas to support application workflows and data integrity.
+- Worked on Razorpay payment gateway integration and Maps APIs for location-based functionality.
+
+PROJECTS
+
+DecisionTrace AI — Financial Data Reliability
+  Python, PostgreSQL, SQL, Pandas, Power BI
+  - Developed a transaction data validation and reconciliation workflow for identifying reporting discrepancies.
+  - Designed KPI reliability reporting, root-cause investigations, and historical Decision Replay comparisons.
+
+Claims & Authorization Data Quality Monitor
+  Python, FastAPI, PostgreSQL, scikit-learn
+  - Worked on backend data-quality and anomaly-monitoring workflows for claims and authorization records.
+  - Applied validation rules and anomaly-detection methods to support investigation and audit workflows.
+
+AI CRM System for Business
+  React.js, Node.js, PostgreSQL / MongoDB, OpenAI API
+  - Built lead, customer, and support-ticket management workflows with sales dashboard reporting.
+  - Implemented AI-assisted lead scoring and customer insights for business decision support.
+
+SKILLS
+Programming & Analytics: Python, SQL, Pandas, Power BI, Excel, ETL
+Databases & Engineering: PostgreSQL, MySQL, data validation, data quality, REST APIs
+Methods & Tools: reconciliation, anomaly detection, Git, GitHub, data visualization
+
+EDUCATION
+B.Tech — AI & Data Science | Sri Manakula Vinayagar Engineering College | 2023–2027 | 7.95 CGPA
+Higher Secondary — Petit Seminaire Higher Secondary School | 2022–2023 | 70.1%
+
+PUBLICATION & ACHIEVEMENTS
+Docvault — RAG-Powered Cross-Document Synthesis, IMJRSET (Mar 2026).
+Special Mention — CloudCouch Hackathon | Top 10 — Tech-a-thon Hackathon
+
+CERTIFICATIONS
+AWS Cloud Foundations | AWS Machine Learning Foundations | AWS Generative AI Foundations
+IBM Introduction to Computer Vision | NPTEL Python for Data Science
+
+TARGET ROLES: Data Analyst, Data Engineer, Business Analyst, Data Science Intern, Analytics Engineer
+LOCATION: Pondicherry, India | Open to Remote | 2027 Graduate | Immediate availability

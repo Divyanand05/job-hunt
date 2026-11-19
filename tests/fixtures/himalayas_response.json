@@ -1,0 +1,25 @@
+{
+  "jobs": [
+    {
+      "title": "Data Analyst",
+      "companyName": "Acme Corp",
+      "applicationLink": "https://himalayas.app/jobs/acme/data-analyst",
+      "pubDate": "2026-11-19T06:00:00Z",
+      "locationRestrictions": ["IN"],
+      "seniority": "Entry Level",
+      "minSalary": 40000,
+      "maxSalary": 60000,
+      "salaryCurrency": "USD",
+      "description": "Looking for a fresher data analyst with Python and SQL skills."
+    },
+    {
+      "title": "Backend Engineer",
+      "companyName": "Beta Inc",
+      "applicationLink": "https://himalayas.app/jobs/beta/backend",
+      "pubDate": "2026-11-18T10:00:00Z",
+      "locationRestrictions": [],
+      "seniority": "Junior",
+      "description": "Entry level backend role open worldwide."
+    }
+  ]
+}

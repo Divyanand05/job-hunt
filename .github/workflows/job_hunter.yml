@@ -1,0 +1,73 @@
+name: AI Job Hunter (Discovery + Notify)
+
+# Original job hunter — collects, ranks, and emails top matches.
+# Runs 3x daily at 6:00 AM, 1:00 PM, 7:00 PM IST.
+
+on:
+  schedule:
+    - cron: "30 0 * * *"    # 06:00 IST
+    - cron: "30 7 * * *"    # 13:00 IST
+    - cron: "30 13 * * *"   # 19:00 IST
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Collect & rank without sending email or writing DB"
+        required: false
+        default: "false"
+        type: choice
+        options: ["true", "false"]
+
+jobs:
+  hunt:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Restore seen_jobs database
+        uses: actions/cache@v4
+        with:
+          path: data/seen_jobs.db
+          key: seen-jobs-db-${{ github.run_id }}
+          restore-keys: seen-jobs-db-
+
+      - name: Run job hunter
+        env:
+          GEMINI_API_KEY:     ${{ secrets.GEMINI_API_KEY }}
+          HIMALAYAS_API_KEY:  ${{ secrets.HIMALAYAS_API_KEY }}
+          GMAIL_USER:         ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          RECIPIENT_EMAIL:    ${{ secrets.RECIPIENT_EMAIL }}
+          DRY_RUN:            ${{ github.event.inputs.dry_run || 'false' }}
+          MAX_JOB_AGE_HOURS:  "24"
+          MAX_JOBS_PER_EMAIL: "5"
+          GEMINI_MODEL:       "gemini-flash-lite-latest"
+        run: python main.py
+
+      - name: Upload seen_jobs DB artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: seen-jobs-db-${{ github.run_id }}
+          path: data/seen_jobs.db
+          retention-days: 7
+
+      - name: Run tests (manual trigger only)
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GEMINI_API_KEY:     "test-key"
+          GMAIL_USER:         "test@gmail.com"
+          GMAIL_APP_PASSWORD: "test-pass"
+          DRY_RUN:            "true"
+        run: pytest tests/ -v --tb=short

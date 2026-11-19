@@ -1,0 +1,104 @@
+name: AI Auto-Apply Agent (Discover + Prepare)
+
+# Extended pipeline — discovers, scores, prepares applications,
+# routes to manual review queue. Scheduled runs NEVER auto-submit.
+# Submission requires explicit user approval in the dashboard.
+
+on:
+  schedule:
+    - cron: "30 0 * * *"    # 06:00 IST
+    - cron: "30 7 * * *"    # 13:00 IST
+    - cron: "30 13 * * *"   # 19:00 IST
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Discover & prepare without writing DB or sending email"
+        required: false
+        default: "false"
+        type: choice
+        options: ["true", "false"]
+      min_score:
+        description: "Minimum Gemini score to shortlist (default 80)"
+        required: false
+        default: "80"
+
+jobs:
+  apply-agent:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # ----------------------------------------------------------------
+      # Restore BOTH databases between runs.
+      # seen_jobs.db  — prevents re-notifying about seen jobs
+      # apply_agent.db — preserves full application tracking history
+      # ----------------------------------------------------------------
+      - name: Restore seen_jobs database
+        uses: actions/cache@v4
+        with:
+          path: data/seen_jobs.db
+          key: seen-jobs-db-${{ github.run_id }}
+          restore-keys: seen-jobs-db-
+
+      - name: Restore apply_agent database
+        uses: actions/cache@v4
+        with:
+          path: data/apply_agent.db
+          key: apply-agent-db-${{ github.run_id }}
+          restore-keys: apply-agent-db-
+
+      - name: Run apply agent (discover + prepare)
+        env:
+          GEMINI_API_KEY:     ${{ secrets.GEMINI_API_KEY }}
+          HIMALAYAS_API_KEY:  ${{ secrets.HIMALAYAS_API_KEY }}
+          GMAIL_USER:         ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          RECIPIENT_EMAIL:    ${{ secrets.RECIPIENT_EMAIL }}
+          DRY_RUN:            ${{ github.event.inputs.dry_run || 'false' }}
+          MAX_JOB_AGE_HOURS:  "24"
+          MAX_JOBS_PER_EMAIL: "5"
+          GEMINI_MODEL:       "gemini-flash-lite-latest"
+          MIN_SCORE:          ${{ github.event.inputs.min_score || '80' }}
+          # NO AUTO_SUBMIT_* variables — submission is always DENY in scheduled runs
+        run: python apply_main.py
+
+      # ----------------------------------------------------------------
+      # Always upload DBs as artifacts so the dashboard can download them
+      # and so they survive even if the cache key doesn't match.
+      # ----------------------------------------------------------------
+      - name: Upload seen_jobs DB
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: seen-jobs-db-${{ github.run_id }}
+          path: data/seen_jobs.db
+          retention-days: 14
+
+      - name: Upload apply_agent DB
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: apply-agent-db-${{ github.run_id }}
+          path: data/apply_agent.db
+          retention-days: 14
+
+      - name: Run tests (manual trigger only)
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GEMINI_API_KEY:     "test-key"
+          GMAIL_USER:         "test@gmail.com"
+          GMAIL_APP_PASSWORD: "test-pass"
+          DRY_RUN:            "true"
+        run: pytest tests/ -v --tb=short -x
