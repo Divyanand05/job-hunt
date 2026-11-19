@@ -113,7 +113,9 @@ GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-flash-lite-latest")
 APPLY_DB_PATH = DATA_DIR / "apply_agent.db"
 
 # Minimum Gemini score to shortlist a job (0–100)
-MIN_SCORE: int = int(os.getenv("MIN_SCORE", "80"))
+# Default 50 — seniors are blocked by the hard filter in filter.py,
+# so a 50+ score here means good skills match for a fresher-eligible role.
+MIN_SCORE: int = int(os.getenv("MIN_SCORE", "50"))
 
 # ---------------------------------------------------------------------------
 # Dry-run mode — collect & rank but do not send email or write to DB

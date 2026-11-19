@@ -74,7 +74,8 @@ def _build_scoring_prompt(resume: str, jobs: list, job_indices: list) -> str:
     jobs_text = "\n".join(job_blocks)
 
     return textwrap.dedent("""
-    You are a career advisor helping a candidate match jobs to their resume.
+    You are a career advisor helping a FRESHER candidate (2027 B.Tech graduate,
+    6-month internship, 0 years full-time experience) match jobs to their resume.
 
     RESUME:
     {resume}
@@ -91,20 +92,40 @@ def _build_scoring_prompt(resume: str, jobs: list, job_indices: list) -> str:
       "missing_skills": [<skills mentioned in job but absent from resume, max 3>]
     }}
 
-    SCORING GUIDELINES:
-    - 80-100: Strong match -- most required skills present, entry-level/fresher role.
-    - 60-79: Good match -- majority of skills present.
-    - 40-59: Partial match -- some skills missing but candidate can grow.
-    - 0-39: Weak match -- significant skill gap or seniority mismatch.
-    - Prioritise freshers/entry-level/intern/0-1 year experience jobs.
-    - Prioritise remote or India-accessible roles.
-    - The candidate is a 2027 B.Tech graduate with one internship (Oct 2025 - Apr 2026).
+    SCORING RULES — apply in this exact order:
+
+    STEP 1 — EXPERIENCE CHECK (most important):
+    - If job requires 0 years / fresher / intern / entry-level / no experience → eligible, continue scoring.
+    - If job has NO experience requirement mentioned → eligible, continue scoring.
+    - If job requires 1 year → eligible but penalise 10 points.
+    - If job requires 2+ years → score MAXIMUM 25. Stop here.
+    - If job title has Senior / Lead / Staff / Principal → score MAXIMUM 20. Stop here.
+
+    STEP 2 — SKILLS MATCH (if eligible from Step 1):
+    - Count how many required skills appear in the resume.
+    - 90–100: 80%+ skills match AND fresher/entry-level/intern role.
+    - 70–89:  60–79% skills match, entry-level or unspecified experience.
+    - 50–69:  40–59% skills match, candidate can grow into role.
+    - 30–49:  Less than 40% skills match.
+    - 0–29:   Very poor match or senior role.
+
+    STEP 3 — BONUS POINTS (add to Step 2 score, max total 100):
+    - +10 if job explicitly says fresher / fresh graduate / 2027 / campus hire.
+    - +5  if role is internship.
+    - +5  if location is India / Remote / Worldwide.
+    - +5  if job mentions Python and candidate has Python.
+
+    CANDIDATE PROFILE (never invent beyond this):
+    - B.Tech AI & Data Science, 2027 graduate, CGPA 7.95
+    - 6-month internship at CloudCouch Tech (Oct 2025 – Apr 2026): REST APIs, PostgreSQL, Flask
+    - Projects: Docvault (RAG/FAISS/AWS Lambda), AuraVision Guard (YOLOv8/OpenCV), AI CRM (Node/PostgreSQL)
+    - Skills: Python, SQL, Pandas, Flask, FastAPI, PostgreSQL, MongoDB, AWS Lambda, FAISS, TF-IDF, OpenCV, YOLOv8, Git
+    - 0 years full-time experience. Fresher. Available immediately.
 
     STRICT RULES:
-    - Only cite skills and facts that appear in the resume text above.
-    - Do NOT invent qualifications, achievements or job requirements.
-    - Do NOT mention salary ranges unless explicitly stated in the job description.
-    - Return ONLY valid JSON array (no markdown fences, no explanation text).
+    - Only cite skills and facts from the resume above.
+    - Do NOT invent qualifications, achievements or requirements.
+    - Return ONLY valid JSON array (no markdown fences, no explanation).
     """).strip().format(resume=resume, jobs_text=jobs_text)
 
 

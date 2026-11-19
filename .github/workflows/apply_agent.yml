@@ -70,7 +70,7 @@ jobs:
           MAX_JOB_AGE_HOURS:  "24"
           MAX_JOBS_PER_EMAIL: "5"
           GEMINI_MODEL:       "gemini-flash-lite-latest"
-          MIN_SCORE:          ${{ github.event.inputs.min_score || '80' }}
+          MIN_SCORE:          ${{ github.event.inputs.min_score || '50' }}
           # NO AUTO_SUBMIT_* variables — submission is always DENY in scheduled runs
         run: python apply_main.py
 

@@ -160,3 +160,100 @@ class TestFilter:
         job = _make_job(posted_at=None)
         result = filter_jobs([job])
         assert result == []
+
+
+# ---------------------------------------------------------------------------
+# New: Senior role hard filter
+# ---------------------------------------------------------------------------
+
+class TestSeniorFilter:
+    def test_senior_engineer_rejected(self):
+        from datetime import datetime, timezone
+        job = JobListing(
+            title="Senior Data Engineer",
+            company="BigCo",
+            source="himalayas",
+            url="https://example.com/senior-de",
+            posted_at=datetime.now(timezone.utc),
+            location="Remote",
+            remote=True,
+            description="Senior Data Engineer role. 5+ years of experience required. Python, Spark.",
+        )
+        result = filter_jobs([job])
+        assert result == [], "Senior role with 5+ years must be rejected"
+
+    def test_two_years_requirement_rejected(self):
+        from datetime import datetime, timezone
+        job = JobListing(
+            title="Data Analyst",
+            company="Corp",
+            source="weworkremotely",
+            url="https://example.com/da",
+            posted_at=datetime.now(timezone.utc),
+            location="Remote",
+            remote=True,
+            description="Data Analyst needed. Minimum 2 years of experience in SQL and Python.",
+        )
+        result = filter_jobs([job])
+        assert result == [], "2+ years requirement must be rejected"
+
+    def test_fresher_role_passes(self):
+        from datetime import datetime, timezone
+        job = JobListing(
+            title="Data Analyst",
+            company="Startup",
+            source="himalayas",
+            url="https://example.com/fresher-da",
+            posted_at=datetime.now(timezone.utc),
+            location="Remote India",
+            remote=True,
+            description="Fresher data analyst role. 0-1 years experience. Python and SQL required.",
+        )
+        result = filter_jobs([job])
+        assert len(result) == 1, "Fresher role must pass"
+
+    def test_no_experience_mentioned_passes(self):
+        """Jobs with no experience requirement are assumed open to freshers."""
+        from datetime import datetime, timezone
+        job = JobListing(
+            title="Python Developer",
+            company="Startup",
+            source="himalayas",
+            url="https://example.com/py-dev",
+            posted_at=datetime.now(timezone.utc),
+            location="Remote",
+            remote=True,
+            description="Python developer role. Skills: FastAPI, PostgreSQL, Git.",
+        )
+        result = filter_jobs([job])
+        assert len(result) == 1, "No experience requirement → allowed for fresher"
+
+    def test_intern_role_passes(self):
+        from datetime import datetime, timezone
+        job = JobListing(
+            title="ML Engineer Intern",
+            company="AI Corp",
+            source="ycombinator",
+            url="https://example.com/ml-intern",
+            posted_at=datetime.now(timezone.utc),
+            location="Bengaluru",
+            remote=False,
+            description="ML internship. Looking for 2027 graduates. Python, TensorFlow.",
+        )
+        result = filter_jobs([job])
+        assert len(result) == 1, "Internship must pass"
+
+    def test_lead_title_rejected(self):
+        from datetime import datetime, timezone
+        job = JobListing(
+            title="Lead Backend Engineer",
+            company="Corp",
+            source="weworkremotely",
+            url="https://example.com/lead",
+            posted_at=datetime.now(timezone.utc),
+            location="Remote",
+            remote=True,
+            description="Lead backend engineer to manage a team of 5. Python, AWS.",
+        )
+        result = filter_jobs([job])
+        assert result == [], "Lead title must be rejected"
