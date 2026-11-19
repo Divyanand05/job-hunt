@@ -162,14 +162,45 @@ def run_pipeline(
         fresh = [j for j in filtered if not store.exists(j.fingerprint())]
         logger.info("After apply_agent dedup: %d fresh jobs", len(fresh))
 
-        # 6. Rank with Gemini
-        ranked_all = rank_jobs(fresh, top_n=len(fresh)) if fresh else []
+        if not fresh:
+            dedup.mark_seen([])
+            summary = {
+                "discovered": len(raw_jobs), "filtered": len(filtered),
+                "shortlisted": 0, "prepared": 0,
+                "pending_review": store.counts_by_status().get("pending_review", 0),
+                "submitted": store.counts_by_status().get("submitted", 0),
+                "health": health, "elapsed_seconds": 0,
+            }
+            return summary
 
-        # 7. Shortlist (score >= min_score)
-        shortlisted = [r for r in ranked_all if r.score >= min_score]
+        # 6. Split into primary pool (≤24h) and fallback pool (24–72h)
+        primary = [j for j in fresh if j.is_recent(config.MAX_JOB_AGE_HOURS)]
+        fallback = [j for j in fresh if not j.is_recent(config.MAX_JOB_AGE_HOURS)]
+        logger.info("Primary pool (≤24h): %d | Fallback pool (24–72h): %d",
+                    len(primary), len(fallback))
+
+        # 7. Rank primary + fallback together (Gemini call)
+        all_to_rank = primary + fallback
+        ranked_all = rank_jobs(all_to_rank, top_n=len(all_to_rank)) if all_to_rank else []
+
+        # 8. Apply tier-appropriate score thresholds
+        shortlisted = []
+        for r in ranked_all:
+            is_fallback = r.job in fallback
+            threshold = getattr(config, "FALLBACK_MIN_SCORE", 82) if is_fallback else min_score
+            if r.score >= threshold:
+                shortlisted.append(r)
+
+        # Also force REVIEW_REQUIRED into pending regardless of score when uncertainty=high
+        for r in ranked_all:
+            if r not in shortlisted and getattr(r, "uncertainty", "low") == "high" and r.score >= 50:
+                r.recommendation = "review"
+                shortlisted.append(r)
+
         logger.info(
-            "Shortlisted %d / %d ranked jobs (min_score=%d)",
+            "Shortlisted %d / %d ranked jobs (primary threshold=%d, fallback threshold=%d)",
             len(shortlisted), len(ranked_all), min_score,
+            getattr(config, "FALLBACK_MIN_SCORE", 82),
         )
 
         # 8. Prepare each shortlisted job

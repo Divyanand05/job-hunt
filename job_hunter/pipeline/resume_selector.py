@@ -1,79 +1,73 @@
 """
-resume_selector.py — Pick the most relevant resume for a given job.
+resume_selector.py — Evidence-based resume selection.
 
-Four tailored resumes are available:
+Scores ALL three tailored resumes against every job by counting how many
+skill/responsibility keywords from the job description appear in each resume.
+The resume with the highest evidence count wins. Ties broken by specificity.
 
-  resume_data.txt    Data Analyst, Data Engineer, Business Analyst, Analytics
-  resume_backend.txt Backend Developer, Python Developer, Software Engineer
-  resume_aiml.txt    AI Engineer, ML Engineer, Computer Vision, GenAI
-  resume_main.txt    General / fallback
-
-Selection is a pure keyword match against the job title + description.
-No external API call is made — this is fast and free.
+This replaces the previous keyword-priority approach (W5 fix).
 """
 from __future__ import annotations
 
 import re
 from pathlib import Path
+from typing import Optional
 
-import sys, os
+import sys
+import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 import config
 
 # ---------------------------------------------------------------------------
-# Resume definitions: each entry is (file_path, priority, keyword_patterns)
-# Higher priority wins when multiple resumes match.
+# Resume definitions
 # ---------------------------------------------------------------------------
 _RESUMES = [
-    # --- AI / ML (highest specificity first) ---
     {
         "key": "aiml",
         "path": config.DATA_DIR / "resume_aiml.txt",
-        "priority": 3,
-        "patterns": re.compile(
-            r"\b(ai engineer|machine learning|ml engineer|deep learning|"
-            r"computer vision|nlp|generative ai|gen ai|llm|rag|"
-            r"large language model|diffusion|transformer|yolo|"
-            r"object detection|multimodal|reinforcement learning)\b",
+        "specificity": 3,   # tie-break: higher = preferred
+        "domain_keywords": re.compile(
+            r"\b(machine learning|deep learning|computer vision|nlp|"
+            r"neural network|yolo|object detection|llm|rag|faiss|"
+            r"transformers|pytorch|tensorflow|opencv|generative ai|"
+            r"diffusion|multimodal|reinforcement|ai engineer|ml engineer|"
+            r"model training|inference|embedding|vector|classification)\b",
             re.IGNORECASE,
         ),
     },
-    # --- Data / Analytics ---
     {
         "key": "data",
         "path": config.DATA_DIR / "resume_data.txt",
-        "priority": 3,
-        "patterns": re.compile(
-            r"\b(data analyst|data engineer|analytics engineer|"
-            r"business analyst|bi developer|etl|data pipeline|"
-            r"data quality|data warehouse|power bi|tableau|dbt|"
-            r"spark|hadoop|airflow|looker|sql analyst)\b",
+        "specificity": 3,
+        "domain_keywords": re.compile(
+            r"\b(data analyst|data engineer|sql|etl|pipeline|power bi|"
+            r"tableau|dbt|spark|hadoop|airflow|looker|data warehouse|"
+            r"data quality|reconciliation|anomaly detection|pandas|"
+            r"excel|bi developer|analytics engineer|business analyst|"
+            r"reporting|dashboard|kpi|data validation|data modeling)\b",
             re.IGNORECASE,
         ),
     },
-    # --- Backend / Python ---
     {
         "key": "backend",
         "path": config.DATA_DIR / "resume_backend.txt",
-        "priority": 2,
-        "patterns": re.compile(
-            r"\b(backend|back-end|back end|python developer|"
-            r"software engineer|api developer|rest api|fastapi|"
-            r"flask|django|node\.?js|express|microservice|"
-            r"devops|cloud engineer|aws developer)\b",
+        "specificity": 2,
+        "domain_keywords": re.compile(
+            r"\b(backend|rest api|fastapi|flask|django|node\.?js|express|"
+            r"microservice|postgresql|mongodb|mysql|supabase|aws lambda|"
+            r"s3|dynamodb|api development|server.?side|web service|"
+            r"authentication|database schema|system design|mcp)\b",
             re.IGNORECASE,
         ),
     },
-    # --- General fallback (always matches) ---
     {
         "key": "main",
         "path": config.DATA_DIR / "resume_main.txt",
-        "priority": 1,
-        "patterns": re.compile(r".*", re.IGNORECASE),  # match anything
+        "specificity": 1,
+        "domain_keywords": re.compile(r".", re.IGNORECASE),  # always matches
     },
 ]
 
-# Cache file contents so we don't re-read on every call
 _cache: dict[str, str] = {}
 
 
@@ -82,40 +76,88 @@ def _read(path: Path) -> str:
     if key not in _cache:
         if not path.exists():
             raise FileNotFoundError(
-                f"Resume file not found: {path}\n"
-                "Make sure data/resume_*.txt files exist. See README.md."
+                f"Resume file not found: {path}. "
+                "Make sure data/resume_*.txt files exist."
             )
         _cache[key] = path.read_text(encoding="utf-8").strip()
     return _cache[key]
 
 
-def select_resume(job_title: str, job_description: str = "") -> tuple[str, str]:
-    """Return (resume_text, resume_key) for the best-matching resume.
-
-    Args:
-        job_title:       The normalised job title.
-        job_description: The job description (used for tie-breaking).
-
-    Returns:
-        A tuple of (resume_text, resume_key) where resume_key is one of
-        'aiml', 'data', 'backend', 'main'.
+def _count_evidence(job_text: str, resume_text: str) -> int:
     """
-    combined = f"{job_title} {job_description}".strip()
+    Count how many unique words from the job text appear in the resume text.
+    Uses token overlap: tokenize job text, count how many tokens exist in resume.
+    """
+    # Extract meaningful words (3+ chars) from job text
+    job_words = set(re.findall(r"\b[a-zA-Z][a-zA-Z0-9+#.-]{2,}\b", job_text.lower()))
+    resume_lower = resume_text.lower()
+    # Count how many job words appear in resume
+    return sum(1 for w in job_words if w in resume_lower)
 
-    best = None
-    best_priority = -1
 
-    for resume_def in _RESUMES:
-        if resume_def["patterns"].search(combined):
-            if resume_def["priority"] > best_priority:
-                best = resume_def
-                best_priority = resume_def["priority"]
+def select_resume(job_title: str, job_description: str = "") -> tuple[str, str]:
+    """
+    Return (resume_text, resume_key) for the best-supported resume.
 
-    # 'main' always matches, so best is never None
-    assert best is not None
+    Selection logic:
+    1. For each non-main resume, check if its domain keywords appear in the job.
+    2. Among matching resumes, count token overlap with the job text.
+    3. Highest overlap wins. Ties broken by specificity.
+    4. If no domain keywords match, fall back to main resume.
+    """
+    combined_job = f"{job_title} {job_description}".strip()
+
+    candidates = []
+    for r in _RESUMES:
+        if r["key"] == "main":
+            continue
+        # Check domain match first (fast gate)
+        if r["domain_keywords"].search(combined_job):
+            evidence = _count_evidence(combined_job, _read(r["path"]))
+            candidates.append((evidence, r["specificity"], r))
+
+    if not candidates:
+        # No domain match — use main resume
+        main = next(r for r in _RESUMES if r["key"] == "main")
+        return _read(main["path"]), "main"
+
+    # Sort by evidence DESC, then specificity DESC
+    candidates.sort(key=lambda x: (x[0], x[1]), reverse=True)
+    best = candidates[0][2]
     return _read(best["path"]), best["key"]
 
 
+def select_best_resume_for_job(job_title: str, job_description: str = "") -> dict:
+    """
+    Extended version: returns scores for ALL resumes for transparency.
+
+    Returns dict with keys: selected_key, scores (dict of key → score), resume_text
+    """
+    combined_job = f"{job_title} {job_description}".strip()
+    scores = {}
+
+    for r in _RESUMES:
+        if r["key"] == "main":
+            scores["main"] = 0
+            continue
+        if r["domain_keywords"].search(combined_job):
+            scores[r["key"]] = _count_evidence(combined_job, _read(r["path"]))
+        else:
+            scores[r["key"]] = 0
+
+    best_key = max(scores, key=lambda k: (scores[k], next(
+        r["specificity"] for r in _RESUMES if r["key"] == k
+    )))
+
+    if scores[best_key] == 0:
+        best_key = "main"
+
+    return {
+        "selected_key": best_key,
+        "scores": scores,
+        "resume_text": _read(next(r["path"] for r in _RESUMES if r["key"] == best_key)),
+    }
+
+
 def all_resumes() -> dict[str, str]:
-    """Return all four resume texts keyed by resume_key."""
     return {r["key"]: _read(r["path"]) for r in _RESUMES}

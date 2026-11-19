@@ -105,10 +105,21 @@ _EMAIL_TEMPLATE = """
     </ul>
     {% endif %}
 
-    {% if ranked.missing_skills %}
-    <div class="section-label">Skills to Develop</div>
+    {% if ranked.score_breakdown %}
+    <div class="section-label">Score Breakdown</div>
+    <div style="font-size:12px;color:#555;line-height:1.8;">
+      Skills: {{ ranked.score_breakdown.skills }}/35 &nbsp;|&nbsp;
+      Experience: {{ ranked.score_breakdown.experience }}/25 &nbsp;|&nbsp;
+      Projects: {{ ranked.score_breakdown.projects }}/20 &nbsp;|&nbsp;
+      Role/Location: {{ ranked.score_breakdown.role_location }}/15 &nbsp;|&nbsp;
+      Preferred: {{ ranked.score_breakdown.preferred }}/5
+    </div>
+    {% endif %}
+
+    {% if ranked.missing_mandatory %}
+    <div class="section-label">Missing Requirements</div>
     <ul class="bullets">
-      {% for skill in ranked.missing_skills %}<li>{{ skill }}</li>{% endfor %}
+      {% for skill in ranked.missing_mandatory %}<li style="color:#c62828">{{ skill }}</li>{% endfor %}
     </ul>
     {% endif %}
 

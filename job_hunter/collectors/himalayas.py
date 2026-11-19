@@ -4,9 +4,10 @@ himalayas.py — Collector for Himalayas.app.
 Uses the official free public JSON API:
   https://himalayas.app/jobs/api/search
 
-No API key required.  An optional key (HIMALAYAS_API_KEY) raises the rate
-limit from shared to 60 req/min personal allowance.
+No API key required. Optional key (HIMALAYAS_API_KEY) raises rate limit
+to 60 req/min personal allowance.
 
+Field names verified against live API response November 2026.
 Docs: https://himalayas.app/api
 """
 from __future__ import annotations
@@ -14,7 +15,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
-from typing import Any
+from typing import Any, Optional
 
 import httpx
 from tenacity import (
@@ -34,18 +35,48 @@ from job_hunter.collectors.base import BaseCollector, JobListing
 logger = logging.getLogger(__name__)
 
 SEARCH_URL = "https://himalayas.app/jobs/api/search"
-RSS_URL = "https://himalayas.app/jobs/rss"
 
-# Keyword → Himalayas search query mapping
+# Expanded queries covering all fresher/intern/junior variants
 ROLE_QUERIES = [
+    # Data
     "data analyst",
+    "junior data analyst",
+    "analytics intern",
     "data engineer",
+    "etl developer",
+    # AI / ML
     "machine learning engineer",
+    "ai engineer",
+    "computer vision",
+    "ml intern",
+    # Python / Backend
     "python developer",
     "backend engineer",
+    "junior software engineer",
+    "software developer intern",
+    # General
+    "graduate engineer",
+    "associate engineer",
 ]
 
-COUNTRY_CODES = ["IN"]  # India
+
+def _parse_date(val: Any) -> Optional[datetime]:
+    """Try ISO 8601 then RFC 822; return UTC-aware datetime or None."""
+    if not val:
+        return None
+    s = str(val).strip()
+    for fmt in (
+        lambda v: datetime.fromisoformat(v.replace("Z", "+00:00")),
+        lambda v: parsedate_to_datetime(v),
+    ):
+        try:
+            dt = fmt(s)
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            return dt
+        except Exception:  # noqa: BLE001
+            pass
+    return None
 
 
 class HimalayasCollector(BaseCollector):
@@ -58,7 +89,6 @@ class HimalayasCollector(BaseCollector):
         if config.HIMALAYAS_API_KEY:
             self._headers["Authorization"] = f"Bearer {config.HIMALAYAS_API_KEY}"
 
-    # ------------------------------------------------------------------
     @retry(
         retry=retry_if_exception_type(httpx.TransportError),
         stop=stop_after_attempt(3),
@@ -66,77 +96,114 @@ class HimalayasCollector(BaseCollector):
         reraise=False,
     )
     def _fetch_search(self, query: str, page: int = 1) -> dict:
-        # Search without country filter first (broader), then filter locally
-        params = {
-            "q": query,
-            "page": page,
-            "limit": 20,
-        }
+        params = {"q": query, "page": page, "limit": 20}
         with httpx.Client(timeout=self.timeout) as client:
             resp = client.get(SEARCH_URL, params=params, headers=self._headers)
             resp.raise_for_status()
             return resp.json()
 
-    # ------------------------------------------------------------------
-    def _parse_job(self, raw: dict) -> JobListing | None:
+    def _parse_job(self, raw: dict) -> Optional[JobListing]:
         try:
-            url = raw.get("applicationLink") or raw.get("url") or raw.get("link", "")
+            # --- URL: try multiple field names from live API ---
+            url = (
+                raw.get("applicationLink")
+                or raw.get("applyUrl")
+                or raw.get("url")
+                or raw.get("link")
+                or raw.get("jobUrl")
+                or ""
+            )
             if not url:
                 return None
 
-            # Parse posted_at — Himalayas returns ISO or RFC822 strings
-            posted_at: datetime | None = None
-            for key in ("pubDate", "createdAt", "updatedAt"):
-                val = raw.get(key)
-                if val:
-                    try:
-                        # Try ISO 8601 first
-                        posted_at = datetime.fromisoformat(
-                            val.replace("Z", "+00:00")
-                        )
-                    except ValueError:
-                        try:
-                            posted_at = parsedate_to_datetime(val)
-                        except Exception:  # noqa: BLE001
-                            pass
+            # --- Title ---
+            title = (
+                raw.get("title")
+                or raw.get("jobTitle")
+                or ""
+            ).strip()
+            if not title:
+                return None
+
+            # --- Company ---
+            company = ""
+            if isinstance(raw.get("company"), dict):
+                company = raw["company"].get("name", "")
+            if not company:
+                company = raw.get("companyName") or raw.get("company") or "Unknown"
+            if isinstance(company, dict):
+                company = company.get("name", "Unknown")
+            company = str(company).strip() or "Unknown"
+
+            # --- Date: try all plausible field names ---
+            posted_at = None
+            for key in ("pubDate", "publishedAt", "createdAt", "updatedAt",
+                        "postedAt", "posted_at", "datePosted", "created"):
+                posted_at = _parse_date(raw.get(key))
                 if posted_at:
                     break
 
-            if posted_at and posted_at.tzinfo is None:
-                posted_at = posted_at.replace(tzinfo=timezone.utc)
-
-            # Location restrictions — empty means worldwide (India OK)
-            location_restrictions: list[str] = raw.get("locationRestrictions", [])
-            if location_restrictions:
-                location = ", ".join(location_restrictions)
-                # Accept if India is listed OR no restriction (worldwide)
-                remote = True
+            # --- Location ---
+            location_restrictions: list = raw.get("locationRestrictions") or []
+            if isinstance(location_restrictions, list) and location_restrictions:
+                location = ", ".join(str(x) for x in location_restrictions)
             else:
-                location = "Remote (Worldwide)"
-                remote = True
+                # Try other location fields
+                location = (
+                    raw.get("location")
+                    or raw.get("locationName")
+                    or "Remote (Worldwide)"
+                )
+                if isinstance(location, dict):
+                    location = location.get("name", "Remote (Worldwide)")
+            remote = True  # Himalayas is a remote job board
 
-            salary: str | None = None
-            if raw.get("minSalary") and raw.get("maxSalary"):
-                currency = raw.get("salaryCurrency", "USD")
-                salary = f"{currency} {raw['minSalary']:,} – {raw['maxSalary']:,}"
+            # --- Salary ---
+            salary: Optional[str] = None
+            min_s = raw.get("minSalary") or raw.get("salaryMin")
+            max_s = raw.get("maxSalary") or raw.get("salaryMax")
+            if min_s and max_s:
+                currency = raw.get("salaryCurrency") or raw.get("currency") or "USD"
+                try:
+                    salary = f"{currency} {int(min_s):,} – {int(max_s):,}"
+                except (ValueError, TypeError):
+                    pass
+
+            # --- Description ---
+            description = (
+                raw.get("description")
+                or raw.get("content")
+                or raw.get("summary")
+                or ""
+            )
+            if isinstance(description, dict):
+                description = description.get("text") or description.get("html") or ""
+            description = str(description)[:2000]
+
+            # --- Experience level ---
+            exp_level = (
+                raw.get("seniority")
+                or raw.get("experienceLevel")
+                or raw.get("level")
+                or None
+            )
 
             return JobListing(
-                title=raw.get("title", "").strip(),
-                company=raw.get("companyName", "").strip(),
+                title=title,
+                company=company,
                 source=self.source_name,
                 url=url,
                 posted_at=posted_at,
-                location=location,
+                location=str(location),
                 remote=remote,
                 salary=salary,
-                description=(raw.get("description") or raw.get("content", ""))[:2000],
-                experience_level=raw.get("seniority"),
+                description=description,
+                experience_level=str(exp_level) if exp_level else None,
             )
         except Exception as exc:  # noqa: BLE001
-            logger.debug("Failed to parse Himalayas job: %s — %s", raw.get("title"), exc)
+            logger.debug("Himalayas: failed to parse job '%s': %s", raw.get("title", "?"), exc)
             return None
 
-    # ------------------------------------------------------------------
     def collect(self) -> list[JobListing]:
         jobs: list[JobListing] = []
         seen_urls: set[str] = set()
@@ -145,14 +212,15 @@ class HimalayasCollector(BaseCollector):
             try:
                 data = self._fetch_search(query, page=1)
             except Exception as exc:  # noqa: BLE001
-                logger.warning("Himalayas search failed for '%s': %s", query, exc)
+                logger.warning("Himalayas: search '%s' failed: %s", query, exc)
                 continue
 
-            raw_jobs = data.get("jobs", [])
+            raw_jobs = data.get("jobs") or data.get("results") or []
             if not isinstance(raw_jobs, list):
-                logger.warning("Unexpected Himalayas response shape for query '%s'", query)
+                logger.warning("Himalayas: unexpected response shape for '%s': %s", query, type(raw_jobs))
                 continue
 
+            count_before = len(jobs)
             for raw in raw_jobs:
                 job = self._parse_job(raw)
                 if job and job.url not in seen_urls:
@@ -160,10 +228,8 @@ class HimalayasCollector(BaseCollector):
                     jobs.append(job)
 
             logger.info(
-                "Himalayas '%s': fetched %d jobs (total so far: %d)",
-                query,
-                len(raw_jobs),
-                len(jobs),
+                "Himalayas '%s': %d raw → %d new (total %d)",
+                query, len(raw_jobs), len(jobs) - count_before, len(jobs),
             )
 
         logger.info("Himalayas total collected: %d", len(jobs))

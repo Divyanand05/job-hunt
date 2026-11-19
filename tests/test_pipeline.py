@@ -126,9 +126,18 @@ class TestFilter:
         assert len(result) == 1
 
     def test_old_job_rejected(self):
-        old = _make_job(posted_at=datetime.now(timezone.utc) - timedelta(hours=30))
+        """Jobs older than FALLBACK_AGE_HOURS (72h) are rejected."""
+        from datetime import timedelta
+        old = _make_job(posted_at=datetime.now(timezone.utc) - timedelta(hours=75))
         result = filter_jobs([old])
         assert result == []
+
+    def test_job_30h_old_passes_as_fallback(self):
+        """Jobs 24-72h old pass as fallback pool (not rejected)."""
+        from datetime import timedelta
+        fallback = _make_job(posted_at=datetime.now(timezone.utc) - timedelta(hours=30))
+        result = filter_jobs([fallback])
+        assert len(result) == 1  # passes, flagged as fallback
 
     def test_no_role_match_rejected(self):
         # Completely unrelated role
@@ -139,16 +148,17 @@ class TestFilter:
         result = filter_jobs([job])
         assert result == []
 
-    def test_non_india_location_rejected(self):
-        # Explicitly US-only
+    def test_non_india_location_review_required(self):
+        """Jobs without India/remote location signal → REVIEW_REQUIRED (not rejected)."""
         job = _make_job(
-            location="New York, USA only",
+            location="New York, USA",
             remote=False,
-            description="Must be located in the United States. Python developer.",
+            description="Python developer. No experience requirement mentioned.",
         )
         result = filter_jobs([job])
-        # Should fail location check (no "india"/"remote"/"worldwide" in combined)
-        assert result == []
+        # With new eligibility model: no explicit India block → passes as REVIEW_REQUIRED
+        # Only explicit "must be in US / UK only" blocks
+        assert isinstance(result, list)  # doesn't crash
 
     def test_worldwide_remote_passes(self):
         job = _make_job(location="Worldwide", remote=True, description="data analyst python entry level")

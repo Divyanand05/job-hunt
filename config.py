@@ -61,14 +61,24 @@ RECIPIENT_EMAIL: str = os.getenv("RECIPIENT_EMAIL", os.getenv("GMAIL_USER", ""))
 # Job search parameters
 # ---------------------------------------------------------------------------
 TARGET_ROLES: list = [
-    "data analyst",
-    "data engineer",
-    "ai engineer",
-    "ml engineer",
-    "machine learning engineer",
-    "python developer",
-    "backend developer",
-    "backend engineer",
+    # Data
+    "data analyst", "junior data analyst", "bi analyst", "analytics intern",
+    "data analytics", "business analyst", "analytics engineer",
+    # Data Engineering
+    "data engineer", "junior data engineer", "etl developer",
+    "data engineering intern", "data pipeline",
+    # AI / ML
+    "ai engineer", "ml engineer", "machine learning engineer",
+    "applied ai", "computer vision intern", "ml engineer intern",
+    "applied machine learning", "ai intern",
+    # Python / Backend
+    "python developer", "python intern", "software engineer python",
+    "backend developer", "backend engineer", "backend intern",
+    "api developer", "associate software engineer",
+    # General entry-level
+    "graduate engineer trainee", "software developer intern",
+    "software engineer intern", "junior software engineer",
+    "junior developer", "junior engineer",
 ]
 
 TARGET_LOCATIONS: list = [
@@ -79,6 +89,10 @@ TARGET_LOCATIONS: list = [
     "hyderabad",
     "india",
     "worldwide",
+    "anywhere",
+    "global",
+    "work from home",
+    "wfh",
 ]
 
 EXPERIENCE_KEYWORDS: list = [
@@ -93,11 +107,20 @@ EXPERIENCE_KEYWORDS: list = [
     "associate",
     "graduate",
     "2027",
+    "2026",
     "new grad",
+    "campus hire",
+    "trainee",
+    "apprentice",
+    "no experience required",
+    "no prior experience",
 ]
 
-# Jobs older than this many hours are rejected
+# Primary freshness window (hours) — strict 24h pool
 MAX_JOB_AGE_HOURS: int = int(os.getenv("MAX_JOB_AGE_HOURS", "24"))
+
+# Fallback pool: jobs 24–72h old, unseen, scored at higher bar
+FALLBACK_AGE_HOURS: int = int(os.getenv("FALLBACK_AGE_HOURS", "72"))
 
 # Maximum jobs to include in one email
 MAX_JOBS_PER_EMAIL: int = int(os.getenv("MAX_JOBS_PER_EMAIL", "5"))
@@ -112,10 +135,11 @@ GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-flash-lite-latest")
 # ---------------------------------------------------------------------------
 APPLY_DB_PATH = DATA_DIR / "apply_agent.db"
 
-# Minimum Gemini score to shortlist a job (0–100)
-# Default 50 — seniors are blocked by the hard filter in filter.py,
-# so a 50+ score here means good skills match for a fresher-eligible role.
-MIN_SCORE: int = int(os.getenv("MIN_SCORE", "50"))
+# Score thresholds
+MIN_SCORE: int = int(os.getenv("MIN_SCORE", "50"))        # absolute floor
+SHORTLIST_SCORE: int = int(os.getenv("SHORTLIST_SCORE", "75"))    # primary pool threshold
+PRIORITY_SCORE: int = int(os.getenv("PRIORITY_SCORE", "85"))     # priority flag
+FALLBACK_MIN_SCORE: int = int(os.getenv("FALLBACK_MIN_SCORE", "82"))  # fallback pool (higher bar)
 
 # ---------------------------------------------------------------------------
 # Dry-run mode — collect & rank but do not send email or write to DB
