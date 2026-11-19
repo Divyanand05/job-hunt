@@ -61,21 +61,38 @@ ROLE_QUERIES = [
 
 
 def _parse_date(val: Any) -> Optional[datetime]:
-    """Try ISO 8601 then RFC 822; return UTC-aware datetime or None."""
+    """Try Unix timestamp (int/str), ISO 8601, then RFC 822; return UTC-aware datetime or None."""
     if not val:
         return None
     s = str(val).strip()
-    for fmt in (
-        lambda v: datetime.fromisoformat(v.replace("Z", "+00:00")),
-        lambda v: parsedate_to_datetime(v),
-    ):
+
+    # Unix timestamp (Himalayas returns pubDate as a plain integer string)
+    if s.isdigit() or (s.lstrip('-').isdigit()):
         try:
-            dt = fmt(s)
-            if dt.tzinfo is None:
-                dt = dt.replace(tzinfo=timezone.utc)
-            return dt
-        except Exception:  # noqa: BLE001
+            ts = int(s)
+            if 1_000_000_000 < ts < 9_999_999_999:  # plausible unix range
+                return datetime.fromtimestamp(ts, tz=timezone.utc)
+        except (ValueError, OSError):
             pass
+
+    # ISO 8601
+    try:
+        dt = datetime.fromisoformat(s.replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt
+    except ValueError:
+        pass
+
+    # RFC 822
+    try:
+        dt = parsedate_to_datetime(s)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt
+    except Exception:
+        pass
+
     return None
 
 
@@ -163,9 +180,9 @@ class HimalayasCollector(BaseCollector):
             min_s = raw.get("minSalary") or raw.get("salaryMin")
             max_s = raw.get("maxSalary") or raw.get("salaryMax")
             if min_s and max_s:
-                currency = raw.get("salaryCurrency") or raw.get("currency") or "USD"
+                currency = raw.get("currency") or raw.get("salaryCurrency") or "USD"
                 try:
-                    salary = f"{currency} {int(min_s):,} – {int(max_s):,}"
+                    salary = f"{currency} {int(float(min_s)):,} – {int(float(max_s)):,}"
                 except (ValueError, TypeError):
                     pass
 

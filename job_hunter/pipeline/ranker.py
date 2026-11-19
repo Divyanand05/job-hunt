@@ -297,16 +297,25 @@ def rank_jobs(jobs: list, top_n: int = 5) -> list:
                 logger.error("Ranker: Gemini error: %s", exc)
                 continue
 
+            # Build a lookup from abs_idx → job object for this batch
+            idx_to_job = {item[0]: item[1] for item in batch}
+
             for item in parsed:
                 abs_idx = int(item.get("job_index", 0))
-                if abs_idx in {i[0] for i in batch}:
-                    # Apply mandatory failure caps
+                if abs_idx in idx_to_job:
                     bd = item.get("score_breakdown", {})
-                    total = int(item.get("total_score", sum(bd.values()) if bd else 0))
+                    total = int(item.get("total_score", sum(int(v) for v in bd.values()) if bd else 0))
                     exp_score = int(bd.get("experience", 25))
                     loc_score = int(bd.get("role_location", 15))
-                    if exp_score == 0:
-                        total = min(total, 20)
+                    if exp_score == 0 and total > 20:
+                        job_obj = idx_to_job[abs_idx]
+                        desc_lower = (job_obj.description or "").lower()
+                        has_explicit_exp = any(p in desc_lower for p in [
+                            "2 year", "3 year", "4 year", "5 year",
+                            "2+ year", "3+ year", "minimum 2", "at least 2"
+                        ])
+                        if has_explicit_exp:
+                            total = min(total, 20)
                     if loc_score == 0:
                         total = min(total, 10)
                     item["total_score"] = total
