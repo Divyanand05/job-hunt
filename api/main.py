@@ -150,8 +150,68 @@ def mark_submitted(app_id: str, body: SubmitConfirm):
         return _serialize(rec)
 
 
-@app.get("/api/export/csv")
-def export_csv():
+@app.post("/api/admin/upload-db")
+async def upload_db(file: bytes = None):
+    """
+    One-time endpoint to seed Railway DB from a local apply_agent.db upload.
+    POST the SQLite file as raw bytes. Protected by ADMIN_SECRET env var.
+    """
+    from fastapi import Request
+    return {"error": "Use /api/admin/sync instead"}
+
+
+@app.post("/api/admin/sync")
+async def sync_applications(request: Request):
+    """
+    Accepts a JSON array of application records and upserts them into Railway DB.
+    Protected by ADMIN_SECRET header.
+    """
+    import os
+    secret = os.getenv("ADMIN_SECRET", "")
+    auth = request.headers.get("X-Admin-Secret", "")
+    if secret and auth != secret:
+        raise HTTPException(403, "Forbidden")
+
+    data = await request.json()
+    records_data = data if isinstance(data, list) else data.get("records", [])
+
+    from apply_agent.models import ApplicationStatus, Answer, AnswerConfidence
+    import json as _json
+    from datetime import datetime, timezone
+
+    synced = 0
+    with get_store() as store:
+        for r in records_data:
+            try:
+                from apply_agent.models import ApplicationRecord
+                from apply_agent.store import _str_to_dt
+                rec = ApplicationRecord(
+                    id=r["id"],
+                    fingerprint=r["fingerprint"],
+                    job_title=r["job_title"],
+                    company=r["company"],
+                    source=r["source"],
+                    apply_url=r["apply_url"],
+                    score=r["score"],
+                    resume_used=r.get("resume_used", "main"),
+                    status=ApplicationStatus(r["status"]),
+                    cover_note=r.get("cover_note"),
+                    answers=[Answer.from_dict(a) for a in r.get("answers", [])],
+                    adapter=r.get("adapter", "manual"),
+                    flags=r.get("flags", []),
+                    notified=bool(r.get("notified", False)),
+                    job_location=r.get("job_location", ""),
+                    job_salary=r.get("job_salary"),
+                    posted_at=_str_to_dt(r.get("posted_at")),
+                    match_reasons=r.get("match_reasons", []),
+                    missing_skills=r.get("missing_skills", []),
+                )
+                store.upsert(rec)
+                synced += 1
+            except Exception as exc:
+                logger.warning("Sync: skipped record %s: %s", r.get("id", "?"), exc)
+
+    return {"synced": synced, "total": len(records_data)}
     with get_store() as store:
         rows = store.to_csv_rows()
     if not rows:
